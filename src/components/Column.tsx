@@ -123,6 +123,7 @@ export function Column({
                           onDelete={() => onDeleteTask(column.id, task.id)}
                           onUpdate={(updatedTask) => onUpdateTask(column.id, updatedTask)}
                           isDragging={snapshot.isDragging}
+                          columnName={column.title}
                         />
                       </div>
                     )}

@@ -3,19 +3,22 @@
 import { Task } from '@/types'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
-import { X, Edit2, Check } from 'lucide-react'
+import { X, Edit2, Check, Sparkles, Loader } from 'lucide-react'
 
 interface TaskCardProps {
   task: Task
   onDelete: () => void
   onUpdate: (task: Task) => void
   isDragging?: boolean
+  columnName?: string
 }
 
-export function TaskCard({ task, onDelete, onUpdate, isDragging }: TaskCardProps) {
+export function TaskCard({ task, onDelete, onUpdate, isDragging, columnName = 'Task' }: TaskCardProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState(task.title)
   const [editDescription, setEditDescription] = useState(task.description)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSave = () => {
     onUpdate({
@@ -24,6 +27,45 @@ export function TaskCard({ task, onDelete, onUpdate, isDragging }: TaskCardProps
       description: editDescription,
     })
     setIsEditing(false)
+  }
+
+  const handleGeneratePrompt = async () => {
+    setIsGenerating(true)
+    setError('')
+    try {
+      const response = await fetch('/api/generate-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: task.title,
+          description: task.description,
+          columnName,
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to generate prompt')
+      }
+
+      const { prompt } = await response.json()
+
+      // Append prompt to description
+      const newDescription = task.description
+        ? `${task.description}\n\n[AI Generated Prompt]:\n${prompt}`
+        : `[AI Generated Prompt]:\n${prompt}`
+
+      onUpdate({
+        ...task,
+        description: newDescription,
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setError(message)
+      console.error('Error generating prompt:', err)
+    } finally {
+      setIsGenerating(false)
+    }
   }
 
   if (isEditing) {
@@ -83,6 +125,14 @@ export function TaskCard({ task, onDelete, onUpdate, isDragging }: TaskCardProps
         <h3 className="font-semibold text-sm text-gray-900 flex-1 break-words">{task.title}</h3>
         <div className="flex gap-1 flex-shrink-0">
           <button
+            onClick={handleGeneratePrompt}
+            disabled={isGenerating}
+            className="text-gray-400 hover:text-amber-500 transition-colors p-1 disabled:opacity-50"
+            title="Generate AI prompt"
+          >
+            {isGenerating ? <Loader size={14} className="animate-spin" /> : <Sparkles size={14} />}
+          </button>
+          <button
             onClick={() => setIsEditing(true)}
             className="text-gray-400 hover:text-purple-600 transition-colors p-1"
             title="Edit task"
@@ -98,8 +148,13 @@ export function TaskCard({ task, onDelete, onUpdate, isDragging }: TaskCardProps
           </button>
         </div>
       </div>
+      {error && (
+        <div className="mb-2 text-xs text-red-600 bg-red-50 p-2 rounded">
+          {error}
+        </div>
+      )}
       {task.description && (
-        <p className="text-xs text-gray-600 break-words">{task.description}</p>
+        <p className="text-xs text-gray-600 break-words whitespace-pre-wrap">{task.description}</p>
       )}
     </motion.div>
   )
