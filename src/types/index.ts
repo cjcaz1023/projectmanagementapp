@@ -15,3 +15,11 @@ export interface Board {
   id: string
   columns: Column[]
 }
+
+export interface Note {
+  id: string
+  title: string
+  content: string
+  createdAt: number
+  updatedAt: number
+}
