@@ -1,10 +1,12 @@
 'use client'
 
-import { Board as BoardType } from '@/types'
+import { useState } from 'react'
+import { Board as BoardType, CalendarEvent } from '@/types'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { Board } from '@/components/Board'
+import { CalendarModal } from '@/components/CalendarModal'
 import { motion } from 'framer-motion'
-import { Zap } from 'lucide-react'
+import { Zap, Calendar } from 'lucide-react'
 
 const DEFAULT_BOARD: BoardType = {
   id: 'board-1',
@@ -50,6 +52,16 @@ const DEFAULT_BOARD: BoardType = {
 
 export default function Page() {
   const [board, setBoard, isLoaded] = useLocalStorage<BoardType>('kanban-board', DEFAULT_BOARD)
+  const [events, setEvents] = useLocalStorage<CalendarEvent[]>('calendar-events', [])
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
+
+  const handleAddEvent = (event: CalendarEvent) => {
+    setEvents(prev => [...prev, event])
+  }
+
+  const handleDeleteEvent = (eventId: string) => {
+    setEvents(prev => prev.filter(e => e.id !== eventId))
+  }
 
   if (!isLoaded) {
     return (
@@ -80,17 +92,26 @@ export default function Page() {
         className="border-b border-gray-200 bg-white shadow-sm sticky top-0 z-10"
       >
         <div className="px-8 py-6">
-          <div className="flex items-center gap-3">
-            <motion.div
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <Zap className="text-purple-600" size={28} />
-            </motion.div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Vibe Kanban</h1>
-              <p className="text-sm text-gray-500">Your beautiful project management board</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <Zap className="text-purple-600" size={28} />
+              </motion.div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Vibe Kanban</h1>
+                <p className="text-sm text-gray-500">Your beautiful project management board</p>
+              </div>
             </div>
+            <button
+              onClick={() => setIsCalendarOpen(true)}
+              className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+              title="Open Calendar"
+            >
+              <Calendar size={24} />
+            </button>
           </div>
         </div>
       </motion.header>
@@ -99,6 +120,15 @@ export default function Page() {
       <div className="flex-1 overflow-hidden px-8 py-6">
         <Board board={board} onUpdate={setBoard} />
       </div>
+
+      {/* Calendar Modal */}
+      <CalendarModal
+        isOpen={isCalendarOpen}
+        onClose={() => setIsCalendarOpen(false)}
+        events={events}
+        onAddEvent={handleAddEvent}
+        onDeleteEvent={handleDeleteEvent}
+      />
     </main>
   )
 }

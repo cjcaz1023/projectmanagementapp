@@ -15,3 +15,11 @@ export interface Board {
   id: string
   columns: Column[]
 }
+
+export interface CalendarEvent {
+  id: string
+  title: string
+  date: string  // 'YYYY-MM-DD'
+  description?: string
+  createdAt: number
+}
