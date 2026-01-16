@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Board as BoardType } from '@/types'
+import { Board as BoardType, CalendarEvent } from '@/types'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { useNotes } from '@/hooks/useNotes'
 import { Board } from '@/components/Board'
 import { NotesPanel } from '@/components/NotesPanel'
+import { CalendarModal } from '@/components/CalendarModal'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Zap, StickyNote } from 'lucide-react'
+import { Zap, StickyNote, Calendar } from 'lucide-react'
 
 const DEFAULT_BOARD: BoardType = {
   id: 'board-1',
@@ -64,6 +65,16 @@ export default function Page() {
     deleteNote,
     setActiveNote,
   } = useNotes()
+  const [events, setEvents] = useLocalStorage<CalendarEvent[]>('calendar-events', [])
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
+
+  const handleAddEvent = (event: CalendarEvent) => {
+    setEvents(prev => [...prev, event])
+  }
+
+  const handleDeleteEvent = (eventId: string) => {
+    setEvents(prev => prev.filter(e => e.id !== eventId))
+  }
 
   if (!isLoaded || !notesLoaded) {
     return (
@@ -107,13 +118,22 @@ export default function Page() {
                 <p className="text-sm text-gray-500">Your beautiful project management board</p>
               </div>
             </div>
-            <button
-              onClick={() => setIsNotesOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors"
-            >
-              <StickyNote size={20} />
-              <span className="font-medium">Notes</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsCalendarOpen(true)}
+                className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                title="Open Calendar"
+              >
+                <Calendar size={24} />
+              </button>
+              <button
+                onClick={() => setIsNotesOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors"
+              >
+                <StickyNote size={20} />
+                <span className="font-medium">Notes</span>
+              </button>
+            </div>
           </div>
         </div>
       </motion.header>
@@ -139,6 +159,15 @@ export default function Page() {
           />
         )}
       </AnimatePresence>
+
+      {/* Calendar Modal */}
+      <CalendarModal
+        isOpen={isCalendarOpen}
+        onClose={() => setIsCalendarOpen(false)}
+        events={events}
+        onAddEvent={handleAddEvent}
+        onDeleteEvent={handleDeleteEvent}
+      />
     </main>
   )
 }
