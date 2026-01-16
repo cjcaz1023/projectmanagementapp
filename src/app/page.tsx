@@ -3,6 +3,7 @@
 import { Board as BoardType } from '@/types'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { Board } from '@/components/Board'
+import { TodoSidebar } from '@/components/TodoSidebar'
 import { motion } from 'framer-motion'
 import { Zap } from 'lucide-react'
 
@@ -95,9 +96,12 @@ export default function Page() {
         </div>
       </motion.header>
 
-      {/* Board */}
-      <div className="flex-1 overflow-hidden px-8 py-6">
-        <Board board={board} onUpdate={setBoard} />
+      {/* Main content area */}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 overflow-hidden px-8 py-6">
+          <Board board={board} onUpdate={setBoard} />
+        </div>
+        <TodoSidebar />
       </div>
     </main>
   )

@@ -15,3 +15,10 @@ export interface Board {
   id: string
   columns: Column[]
 }
+
+export interface TodoItem {
+  id: string
+  text: string
+  completed: boolean
+  createdAt: number
+}
