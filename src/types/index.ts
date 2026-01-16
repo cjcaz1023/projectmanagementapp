@@ -31,3 +31,10 @@ export interface CalendarEvent {
   description?: string
   createdAt: number
 }
+
+export interface TodoItem {
+  id: string
+  text: string
+  completed: boolean
+  createdAt: number
+}

@@ -7,6 +7,7 @@ import { useNotes } from '@/hooks/useNotes'
 import { Board } from '@/components/Board'
 import { NotesPanel } from '@/components/NotesPanel'
 import { CalendarModal } from '@/components/CalendarModal'
+import { TodoSidebar } from '@/components/TodoSidebar'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Zap, StickyNote, Calendar } from 'lucide-react'
 
@@ -138,9 +139,12 @@ export default function Page() {
         </div>
       </motion.header>
 
-      {/* Board */}
-      <div className="flex-1 overflow-hidden px-8 py-6">
-        <Board board={board} onUpdate={setBoard} />
+      {/* Main content area */}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 overflow-hidden px-8 py-6">
+          <Board board={board} onUpdate={setBoard} />
+        </div>
+        <TodoSidebar />
       </div>
 
       {/* Notes Panel */}
