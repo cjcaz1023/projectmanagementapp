@@ -22,6 +22,11 @@ export function CalendarModal({ isOpen, onClose, events, onAddEvent, onDeleteEve
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [isAddingEvent, setIsAddingEvent] = useState(false)
 
+  const handleSelectDate = (date: string) => {
+    setSelectedDate(date)
+    setIsAddingEvent(true)
+  }
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -68,7 +73,8 @@ export function CalendarModal({ isOpen, onClose, events, onAddEvent, onDeleteEve
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[500px] md:max-h-[80vh] bg-white rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[500px] bg-white rounded-xl shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
@@ -106,7 +112,7 @@ export function CalendarModal({ isOpen, onClose, events, onAddEvent, onDeleteEve
                 currentMonth={currentMonth}
                 selectedDate={selectedDate}
                 events={events}
-                onSelectDate={setSelectedDate}
+                onSelectDate={handleSelectDate}
               />
             </div>
 
