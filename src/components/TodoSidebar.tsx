@@ -1,18 +1,34 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
-import { TodoItem as TodoItemType } from '@/types'
+import { TodoItem as TodoItemType, Priority, TodoCategory } from '@/types'
 import { TodoItem } from './TodoItem'
-import { ChevronLeft, ChevronRight, Plus, ListTodo } from 'lucide-react'
+import { TodoFilterBar } from './TodoFilterBar'
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Plus, ListTodo } from 'lucide-react'
 import { generateId } from '@/utils/id'
 
 export function TodoSidebar() {
   const [isOpen, setIsOpen] = useLocalStorage<boolean>('sidebar-open', true)
   const [todos, setTodos] = useLocalStorage<TodoItemType[]>('sidebar-todos', [])
+  const [filter, setFilter] = useLocalStorage<'all' | 'active' | 'completed'>('todo-filter', 'all')
+  const [sortBy, setSortBy] = useLocalStorage<'newest' | 'dueDate' | 'priority'>('todo-sort', 'newest')
+
   const [newTodoText, setNewTodoText] = useState('')
+  const [newTodoPriority, setNewTodoPriority] = useState<Priority>('medium')
+  const [newTodoDueDate, setNewTodoDueDate] = useState('')
+  const [newTodoCategory, setNewTodoCategory] = useState<TodoCategory | ''>('')
   const [isAdding, setIsAdding] = useState(false)
+  const [showDetails, setShowDetails] = useState(false)
+
+  // Migrate existing todos that lack priority
+  useEffect(() => {
+    const needsMigration = todos.some((t) => !t.priority)
+    if (needsMigration) {
+      setTodos(todos.map((t) => ({ ...t, priority: t.priority || 'medium' })))
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAddTodo = () => {
     if (!newTodoText.trim()) return
@@ -22,10 +38,17 @@ export function TodoSidebar() {
       text: newTodoText.trim(),
       completed: false,
       createdAt: Date.now(),
+      priority: newTodoPriority,
+      dueDate: newTodoDueDate || undefined,
+      category: newTodoCategory || undefined,
     }
 
     setTodos([newTodo, ...todos])
     setNewTodoText('')
+    setNewTodoPriority('medium')
+    setNewTodoDueDate('')
+    setNewTodoCategory('')
+    setShowDetails(false)
     setIsAdding(false)
   }
 
@@ -49,6 +72,41 @@ export function TodoSidebar() {
       setIsAdding(false)
     }
   }
+
+  const displayTodos = useMemo(() => {
+    let filtered = todos
+    if (filter === 'active') filtered = todos.filter((t) => !t.completed)
+    if (filter === 'completed') filtered = todos.filter((t) => t.completed)
+
+    const active = filtered.filter((t) => !t.completed)
+    const completed = filtered.filter((t) => t.completed)
+
+    const priorityOrder = { high: 0, medium: 1, low: 2 }
+
+    active.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return b.createdAt - a.createdAt
+        case 'dueDate':
+          if (!a.dueDate && !b.dueDate) return 0
+          if (!a.dueDate) return 1
+          if (!b.dueDate) return -1
+          return a.dueDate.localeCompare(b.dueDate)
+        case 'priority':
+          return priorityOrder[a.priority] - priorityOrder[b.priority]
+      }
+    })
+
+    completed.sort((a, b) => b.createdAt - a.createdAt)
+
+    return { active, completed }
+  }, [todos, filter, sortBy])
+
+  const priorityButtons: { value: Priority; label: string; color: string; activeColor: string }[] = [
+    { value: 'high', label: 'High', color: 'text-red-500', activeColor: 'bg-red-500 text-white' },
+    { value: 'medium', label: 'Med', color: 'text-amber-500', activeColor: 'bg-amber-500 text-white' },
+    { value: 'low', label: 'Low', color: 'text-blue-400', activeColor: 'bg-blue-400 text-white' },
+  ]
 
   return (
     <motion.aside
@@ -107,6 +165,67 @@ export function TodoSidebar() {
                       placeholder="What needs to be done?"
                       className="w-full px-3 py-2 text-sm border border-purple-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
+
+                    {/* Details toggle */}
+                    <button
+                      onClick={() => setShowDetails(!showDetails)}
+                      className="flex items-center gap-1 text-xs text-purple-500 hover:text-purple-700 transition-colors"
+                    >
+                      {showDetails ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                      {showDetails ? 'Hide details' : 'Add details'}
+                    </button>
+
+                    {/* Expandable details */}
+                    <AnimatePresence>
+                      {showDetails && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="space-y-2 overflow-hidden"
+                        >
+                          {/* Priority */}
+                          <div className="flex gap-1">
+                            {priorityButtons.map((p) => (
+                              <button
+                                key={p.value}
+                                onClick={() => setNewTodoPriority(p.value)}
+                                className={`flex-1 text-xs py-1 rounded transition-colors font-medium ${
+                                  newTodoPriority === p.value
+                                    ? p.activeColor
+                                    : `bg-gray-100 ${p.color} hover:bg-gray-200`
+                                }`}
+                              >
+                                {p.label}
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Due date */}
+                          <input
+                            type="date"
+                            value={newTodoDueDate}
+                            onChange={(e) => setNewTodoDueDate(e.target.value)}
+                            className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                          />
+
+                          {/* Category */}
+                          <select
+                            value={newTodoCategory}
+                            onChange={(e) => setNewTodoCategory(e.target.value as TodoCategory | '')}
+                            className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-purple-500 bg-white text-gray-700"
+                          >
+                            <option value="">No category</option>
+                            <option value="work">Work</option>
+                            <option value="personal">Personal</option>
+                            <option value="errand">Errand</option>
+                            <option value="health">Health</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     <div className="flex gap-2">
                       <button
                         onClick={handleAddTodo}
@@ -117,6 +236,10 @@ export function TodoSidebar() {
                       <button
                         onClick={() => {
                           setNewTodoText('')
+                          setNewTodoPriority('medium')
+                          setNewTodoDueDate('')
+                          setNewTodoCategory('')
+                          setShowDetails(false)
                           setIsAdding(false)
                         }}
                         className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm py-2 rounded transition-colors"
@@ -140,20 +263,51 @@ export function TodoSidebar() {
               </AnimatePresence>
             </div>
 
+            {/* Filter bar */}
+            {todos.length > 0 && (
+              <TodoFilterBar
+                filter={filter}
+                onFilterChange={setFilter}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+              />
+            )}
+
             {/* Todo list */}
             <div className="flex-1 overflow-y-auto p-4">
               <AnimatePresence>
-                {todos.length === 0 ? (
+                {displayTodos.active.length === 0 && displayTodos.completed.length === 0 ? (
                   <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className="text-sm text-gray-500 text-center py-8"
                   >
-                    No todos yet. Add one above!
+                    {todos.length === 0
+                      ? 'No todos yet. Add one above!'
+                      : 'No matching todos.'}
                   </motion.p>
                 ) : (
                   <div className="space-y-2">
-                    {todos.map((todo) => (
+                    {displayTodos.active.map((todo) => (
+                      <TodoItem
+                        key={todo.id}
+                        todo={todo}
+                        onToggle={handleToggle}
+                        onDelete={handleDelete}
+                      />
+                    ))}
+
+                    {displayTodos.active.length > 0 && displayTodos.completed.length > 0 && (
+                      <div className="flex items-center gap-2 py-2">
+                        <div className="flex-1 h-px bg-gray-200" />
+                        <span className="text-[10px] text-gray-400 uppercase tracking-wider">
+                          Completed
+                        </span>
+                        <div className="flex-1 h-px bg-gray-200" />
+                      </div>
+                    )}
+
+                    {displayTodos.completed.map((todo) => (
                       <TodoItem
                         key={todo.id}
                         todo={todo}

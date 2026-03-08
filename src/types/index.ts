@@ -32,9 +32,16 @@ export interface CalendarEvent {
   createdAt: number
 }
 
+export type Priority = 'high' | 'medium' | 'low'
+
+export type TodoCategory = 'work' | 'personal' | 'errand' | 'health' | 'other'
+
 export interface TodoItem {
   id: string
   text: string
   completed: boolean
   createdAt: number
+  dueDate?: string        // 'YYYY-MM-DD' format
+  priority: Priority
+  category?: TodoCategory
 }
