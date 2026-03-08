@@ -2,34 +2,25 @@
 
 import { motion } from 'framer-motion'
 import { X, StickyNote } from 'lucide-react'
-import { Note } from '@/types'
+import { useNotes } from '@/hooks/useNotes'
 import { NotesList } from './NotesList'
 import { NoteEditor } from './NoteEditor'
 
 interface NotesPanelProps {
-  isOpen: boolean
   onClose: () => void
-  notes: Note[]
-  activeNoteId: string | null
-  activeNote: Note | null
-  onCreateNote: () => void
-  onUpdateNote: (note: Note) => void
-  onDeleteNote: (noteId: string) => void
-  onSelectNote: (noteId: string | null) => void
+  notesState: ReturnType<typeof useNotes>
 }
 
-export function NotesPanel({
-  isOpen,
-  onClose,
-  notes,
-  activeNoteId,
-  activeNote,
-  onCreateNote,
-  onUpdateNote,
-  onDeleteNote,
-  onSelectNote,
-}: NotesPanelProps) {
-  if (!isOpen) return null
+export function NotesPanel({ onClose, notesState }: NotesPanelProps) {
+  const {
+    notes,
+    activeNoteId,
+    activeNote,
+    createNote,
+    updateNote,
+    deleteNote,
+    setActiveNote,
+  } = notesState
 
   return (
     <>
@@ -68,11 +59,11 @@ export function NotesPanel({
           <NotesList
             notes={notes}
             activeNoteId={activeNoteId}
-            onSelectNote={onSelectNote}
-            onDeleteNote={onDeleteNote}
-            onCreateNote={onCreateNote}
+            onSelectNote={setActiveNote}
+            onDeleteNote={deleteNote}
+            onCreateNote={createNote}
           />
-          <NoteEditor note={activeNote} onUpdateNote={onUpdateNote} />
+          <NoteEditor note={activeNote} onUpdateNote={updateNote} />
         </div>
       </motion.div>
     </>

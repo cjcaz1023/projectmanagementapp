@@ -10,24 +10,46 @@ import { FileText } from 'lucide-react'
 
 interface NoteEditorProps {
   note: Note | null
-  onUpdateNote: (note: Note) => void
+  onUpdateNote: (noteId: string, changes: Partial<Pick<Note, 'title' | 'content'>>) => void
 }
 
 export function NoteEditor({ note, onUpdateNote }: NoteEditorProps) {
   const titleRef = useRef<HTMLInputElement>(null)
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const pendingChangesRef = useRef<{ noteId: string; changes: Partial<Pick<Note, 'title' | 'content'>> } | null>(null)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
 
-  const debouncedUpdate = useCallback(
-    (content: string) => {
-      if (!note) return
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current)
+  const flush = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    if (pendingChangesRef.current) {
+      const { noteId, changes } = pendingChangesRef.current
+      pendingChangesRef.current = null
+      onUpdateNote(noteId, changes)
+    }
+  }, [onUpdateNote])
+
+  const debouncedSave = useCallback(
+    (noteId: string, changes: Partial<Pick<Note, 'title' | 'content'>>) => {
+      if (pendingChangesRef.current && pendingChangesRef.current.noteId === noteId) {
+        pendingChangesRef.current = {
+          noteId,
+          changes: { ...pendingChangesRef.current.changes, ...changes },
+        }
+      } else {
+        if (pendingChangesRef.current) {
+          flush()
+        }
+        pendingChangesRef.current = { noteId, changes }
       }
-      debounceRef.current = setTimeout(() => {
-        onUpdateNote({ ...note, content })
-      }, 300)
+
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+      }
+      timerRef.current = setTimeout(flush, 400)
     },
-    [note, onUpdateNote]
+    [flush]
   )
 
   const editor = useEditor({
@@ -45,7 +67,9 @@ export function NoteEditor({ note, onUpdateNote }: NoteEditorProps) {
     content: note?.content || '',
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
-      debouncedUpdate(editor.getHTML())
+      if (note) {
+        debouncedSave(note.id, { content: editor.getHTML() })
+      }
     },
     editorProps: {
       attributes: {
@@ -54,6 +78,7 @@ export function NoteEditor({ note, onUpdateNote }: NoteEditorProps) {
     },
   })
 
+  // Sync editor content when switching notes
   useEffect(() => {
     if (editor && note) {
       const currentContent = editor.getHTML()
@@ -63,17 +88,25 @@ export function NoteEditor({ note, onUpdateNote }: NoteEditorProps) {
     }
   }, [note?.id, editor])
 
+  // Flush pending saves on note switch or unmount
   useEffect(() => {
     return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current)
+      flush()
+    }
+  }, [note?.id, flush])
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
       }
     }
   }, [])
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!note) return
-    onUpdateNote({ ...note, title: e.target.value })
+    debouncedSave(note.id, { title: e.target.value })
   }
 
   if (!note) {
@@ -91,7 +124,8 @@ export function NoteEditor({ note, onUpdateNote }: NoteEditorProps) {
         <input
           ref={titleRef}
           type="text"
-          value={note.title}
+          defaultValue={note.title}
+          key={note.id}
           onChange={handleTitleChange}
           placeholder="Note title..."
           className="w-full text-xl font-semibold text-gray-900 focus:outline-none placeholder-gray-400"

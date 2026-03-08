@@ -4,11 +4,15 @@ import { Editor } from '@tiptap/react'
 import {
   Bold,
   Italic,
+  Strikethrough,
+  Code,
   Heading1,
   Heading2,
   List,
   ListOrdered,
+  Quote,
   Link,
+  LucideIcon,
 } from 'lucide-react'
 import { useCallback, useState } from 'react'
 
@@ -16,13 +20,21 @@ interface EditorToolbarProps {
   editor: Editor | null
 }
 
+interface ToolbarButton {
+  icon: LucideIcon
+  action: () => void
+  isActive: () => boolean
+  title: string
+}
+
+type ToolbarItem = ToolbarButton | 'separator'
+
 export function EditorToolbar({ editor }: EditorToolbarProps) {
   const [showLinkInput, setShowLinkInput] = useState(false)
   const [linkUrl, setLinkUrl] = useState('')
 
   const setLink = useCallback(() => {
     if (!editor) return
-
     if (linkUrl === '') {
       editor.chain().focus().extendMarkRange('link').unsetLink().run()
     } else {
@@ -35,6 +47,65 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
 
   if (!editor) return null
 
+  const items: ToolbarItem[] = [
+    {
+      icon: Bold,
+      action: () => editor.chain().focus().toggleBold().run(),
+      isActive: () => editor.isActive('bold'),
+      title: 'Bold (Ctrl+B)',
+    },
+    {
+      icon: Italic,
+      action: () => editor.chain().focus().toggleItalic().run(),
+      isActive: () => editor.isActive('italic'),
+      title: 'Italic (Ctrl+I)',
+    },
+    {
+      icon: Strikethrough,
+      action: () => editor.chain().focus().toggleStrike().run(),
+      isActive: () => editor.isActive('strike'),
+      title: 'Strikethrough (Ctrl+Shift+S)',
+    },
+    {
+      icon: Code,
+      action: () => editor.chain().focus().toggleCode().run(),
+      isActive: () => editor.isActive('code'),
+      title: 'Inline Code (Ctrl+E)',
+    },
+    'separator',
+    {
+      icon: Heading1,
+      action: () => editor.chain().focus().toggleHeading({ level: 1 }).run(),
+      isActive: () => editor.isActive('heading', { level: 1 }),
+      title: 'Heading 1',
+    },
+    {
+      icon: Heading2,
+      action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
+      isActive: () => editor.isActive('heading', { level: 2 }),
+      title: 'Heading 2',
+    },
+    'separator',
+    {
+      icon: List,
+      action: () => editor.chain().focus().toggleBulletList().run(),
+      isActive: () => editor.isActive('bulletList'),
+      title: 'Bullet List',
+    },
+    {
+      icon: ListOrdered,
+      action: () => editor.chain().focus().toggleOrderedList().run(),
+      isActive: () => editor.isActive('orderedList'),
+      title: 'Numbered List',
+    },
+    {
+      icon: Quote,
+      action: () => editor.chain().focus().toggleBlockquote().run(),
+      isActive: () => editor.isActive('blockquote'),
+      title: 'Blockquote',
+    },
+  ]
+
   const buttonClass = (isActive: boolean) =>
     `p-2 rounded transition-colors ${
       isActive
@@ -44,60 +115,23 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
 
   return (
     <div className="flex items-center gap-1 p-2 border-b border-gray-200 flex-wrap">
-      <button
-        type="button"
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        className={buttonClass(editor.isActive('bold'))}
-        title="Bold"
-      >
-        <Bold size={18} />
-      </button>
-      <button
-        type="button"
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-        className={buttonClass(editor.isActive('italic'))}
-        title="Italic"
-      >
-        <Italic size={18} />
-      </button>
-
-      <div className="w-px h-6 bg-gray-200 mx-1" />
-
-      <button
-        type="button"
-        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-        className={buttonClass(editor.isActive('heading', { level: 1 }))}
-        title="Heading 1"
-      >
-        <Heading1 size={18} />
-      </button>
-      <button
-        type="button"
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        className={buttonClass(editor.isActive('heading', { level: 2 }))}
-        title="Heading 2"
-      >
-        <Heading2 size={18} />
-      </button>
-
-      <div className="w-px h-6 bg-gray-200 mx-1" />
-
-      <button
-        type="button"
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-        className={buttonClass(editor.isActive('bulletList'))}
-        title="Bullet List"
-      >
-        <List size={18} />
-      </button>
-      <button
-        type="button"
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        className={buttonClass(editor.isActive('orderedList'))}
-        title="Numbered List"
-      >
-        <ListOrdered size={18} />
-      </button>
+      {items.map((item, index) => {
+        if (item === 'separator') {
+          return <div key={`sep-${index}`} className="w-px h-6 bg-gray-200 mx-1" />
+        }
+        const Icon = item.icon
+        return (
+          <button
+            key={item.title}
+            type="button"
+            onClick={item.action}
+            className={buttonClass(item.isActive())}
+            title={item.title}
+          >
+            <Icon size={18} />
+          </button>
+        )
+      })}
 
       <div className="w-px h-6 bg-gray-200 mx-1" />
 

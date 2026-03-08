@@ -56,16 +56,7 @@ const DEFAULT_BOARD: BoardType = {
 export default function Page() {
   const [board, setBoard, isLoaded] = useLocalStorage<BoardType>('kanban-board', DEFAULT_BOARD)
   const [isNotesOpen, setIsNotesOpen] = useState(false)
-  const {
-    notes,
-    activeNoteId,
-    activeNote,
-    isLoaded: notesLoaded,
-    createNote,
-    updateNote,
-    deleteNote,
-    setActiveNote,
-  } = useNotes()
+  const notesState = useNotes()
   const [events, setEvents] = useLocalStorage<CalendarEvent[]>('calendar-events', [])
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
 
@@ -77,7 +68,7 @@ export default function Page() {
     setEvents(prev => prev.filter(e => e.id !== eventId))
   }
 
-  if (!isLoaded || !notesLoaded) {
+  if (!isLoaded || !notesState.isLoaded) {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
         <motion.div
@@ -151,15 +142,8 @@ export default function Page() {
       <AnimatePresence>
         {isNotesOpen && (
           <NotesPanel
-            isOpen={isNotesOpen}
             onClose={() => setIsNotesOpen(false)}
-            notes={notes}
-            activeNoteId={activeNoteId}
-            activeNote={activeNote}
-            onCreateNote={createNote}
-            onUpdateNote={updateNote}
-            onDeleteNote={deleteNote}
-            onSelectNote={setActiveNote}
+            notesState={notesState}
           />
         )}
       </AnimatePresence>

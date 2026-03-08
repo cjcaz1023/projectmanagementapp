@@ -36,12 +36,12 @@ export function useNotes() {
     return newNote
   }
 
-  const updateNote = (updatedNote: Note) => {
+  const updateNote = (noteId: string, changes: Partial<Pick<Note, 'title' | 'content'>>) => {
     setState((prev) => ({
       ...prev,
       notes: prev.notes.map((note) =>
-        note.id === updatedNote.id
-          ? { ...updatedNote, updatedAt: Date.now() }
+        note.id === noteId
+          ? { ...note, ...changes, updatedAt: Date.now() }
           : note
       ),
     }))
